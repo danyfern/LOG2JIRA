@@ -1,21 +1,21 @@
-; AutoIT Script to automate the upload of JASR log files to a JIRA while reporting an ASR/SCI 
+; AutoIT Script to automate the upload of JASR log files to a JIRA while reporting an ASR/SCI
 ; Preconditions:
 ; (only) the JIRA in scope needs to be opened in IE
 ; one single asr/sr and one single voicepad/sr log is opened in JASR
 ; have the device connected and MyMobiler running with the Screen to upload
 ; Heinrich Krupp, Nuance, December 2013
 
-Global $path = "C:\Temp\", $filename ="", $action=""
+Global $path = "C:\Temp\", $filename ="", $action="", $hWnd = WinWait("Device Screen Capture", "", 10)
 
 #include <Clipboard.au3>
-#include <MsgBoxConstants.au3>
+;#include <MsgBoxConstants.au3>
 ClipPut("")
 
 Func changefilepath()
     ClipPut("")
 	Send ( "^a") ;highlight filename
-	Send ( "^c") ; copy filename to clipboard    
-	Send ( "^c") ; copy filename to clipboard    
+	Send ( "^c") ; copy filename to clipboard
+	Send ( "^c") ; copy filename to clipboard
 	$filename = ClipGet()
 	;copy the filename and concatenate with new path, then put it back into the  field
 	ClipPut($path & $filename)
@@ -38,7 +38,6 @@ EndFunc
 
 
 ; main procedure
-DDMSCREENSHOT2JIRA()
 
 if WinExists ("[CLASS:IEFrame]", "[#") Then  ; JIRA Window exists in IE
 	WinActivate("[CLASS:IEFrame]", "[#")
@@ -54,19 +53,18 @@ if WinExists ("[CLASS:IEFrame]", "[#") Then  ; JIRA Window exists in IE
 	;MsgBox(0, "Full title read was:", $title)
 
 	ASR2JIRA()
-	
+
 	VOICEPAD2JIRA()
 
-	;MYMOBILERSCREENSHOT2JIRA()
-	
+	MYMOBILERSCREENSHOT2JIRA()
+
 	DDMSCREENSHOT2JIRA()
-	
 
 	if WinExists( "Choose File to Upload")Then
 		Send ( "!s") ; attach files
 		WinWait("[CLASS:IEFrame]", "Attach Files:")
 	EndIf
-	
+
 	WinActivate ( "[#" )
 	;WinActivate ( $title )
 
@@ -76,13 +74,13 @@ Func attachlog(); in JIRA Upload dialog
 	Send("{TAB}");Tab
 	Sleep(500)
 	Send("{SPACE}");Space
-	WinWait ( "Choose File to Upload") 
+	WinWait ( "Choose File to Upload")
 	Sleep(500)
 EndFunc
 
 Func FILE2JIRA()
 	Sleep(500)
-	if 	$action = "JASR" then 
+	if 	$action = "JASR" then
 		Send ( "!fs") ;save JASR log file`
 		changefilepath()
 		Send ( "!o") ; save file
@@ -115,8 +113,8 @@ Func MYMOBILERSCREENSHOT2JIRA()
 		;Send ( "^s"); screenshot to clipboard
 		Send ( "^f"); screenshot to file
 		Send ( "^a") ;highlight filename
-		Send ( "^c") ; copy filename to clipboard   
-		Send ( "^c") ; copy filename to clipboard   
+		Send ( "^c") ; copy filename to clipboard
+		Send ( "^c") ; copy filename to clipboard
 		$filename = ClipGet()
 		MsgBox(0, "Clipboard contains:", $filename)
 		WinWait ( "MyMobiler" )
@@ -130,24 +128,41 @@ Func MYMOBILERSCREENSHOT2JIRA()
 EndFunc
 
 Func DDMSCREENSHOT2JIRA()
+	$action = "DDM"
 	ClipPut("")
-		if WinExists ("Device Screen Capture") Then  ; Device Screen Capture Window exists
-		;openuploaddialog()
-		;attachlog()
+	if WinExists ("Device Screen Capture") Then  ; Device Screen Capture Window exists having the desired screen
+		openuploaddialog()
+		attachlog()
+		doddmscreenshot()
+	Else
+		IF WinExists("Dalvik Debug Monitor") Then ; open the screenshot captureing window and refresh the screen
+			openuploaddialog()
+			attachlog()
+			WinActivate ( "Dalvik Debug Monitor" )
+			WinWait ( "Dalvik Debug Monitor" )
+			Send ( "^s") ;screen capture
+			WinActivate ( "Device Screen Capture" )
+			ControlClick($hWnd, "", "Refresh"); refresh screen capture before saving it
+			Sleep(5000)
+			doddmscreenshot()
+		EndIf
+	EndIf
+	
+	
+EndFunc
 
+
+func doddmscreenshot()
+		_ClipBoard_Empty()
 		WinActivate ( "Device Screen Capture" )
 		WinWait ( "Device Screen Capture" )
-		$hWnd = WinWait("Device Screen Capture", "", 10)
-		ControlClick($hWnd, "", "Refresh"); refresh screen capture before saving it
-		Sleep(5000)
 		ControlClick($hWnd, "", "Save"); files save dialog
 		Send ( "^a") ;highlight filename
-		Send ( "^c") ; copy filename to clipboard   
+		Send ( "^c") ; copy filename to clipboard
 		$filename = ClipGet()
 		changefilepath()
 		Send ( "!s") ; save file
-		;FILE2JIRA()
-	EndIf		  
+		FILE2JIRA()
 EndFunc
 
 Func VOICEPAD2JIRA()
@@ -176,6 +191,6 @@ Func ASR2JIRA()
 		changefilepath()
 		Send ( "!o") ; save file
 		FILE2JIRA()
-		;WinClose( "asr/sr" )	
-	Endif	
+		;WinClose( "asr/sr" )
+	Endif
 EndFunc

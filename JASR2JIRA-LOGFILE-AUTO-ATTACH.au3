@@ -8,7 +8,6 @@
 Global $path = "C:\Temp\", $filename ="", $action="", $hWnd = WinWait("Device Screen Capture", "", 10)
 
 #include <Clipboard.au3>
-;#include <MsgBoxConstants.au3>
 ClipPut("")
 
 Func changefilepath()
